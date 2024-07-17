@@ -1,0 +1,166 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  s3-artifacts
+
+  Sample SAM Template for s3-artifacts
+  
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 3
+
+Resources:
+  ArtifactIndexFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: src/serverless/
+      Handler: gateway/artifact.index
+      Runtime: nodejs20.x
+      Architectures:
+        - arm64
+      Layers:
+        - !Ref CommonDependenciesLayer
+      Events:
+        ArtifactIndex:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /{folder}/files
+            Method: get
+
+  ArtifactDownloadFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: src/serverless/
+      Handler: gateway/artifact.download
+      Runtime: nodejs20.x
+      Architectures:
+        - arm64
+      Layers:
+        - !Ref CommonDependenciesLayer
+      Events:
+        ArtifactIndex:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /{folder}/files/{filename}
+            Method: get
+
+  ArtifactUploadFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: src/serverless/
+      Handler: gateway/artifact.upload
+      Runtime: nodejs20.x
+      Architectures:
+        - arm64
+      Layers:
+        - !Ref CommonDependenciesLayer
+      Events:
+        ArtifactIndex:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /{folder}/files/{filename}
+            Method: put
+
+  ArtifactBootstrapFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: src/serverless/
+      Handler: gateway/bootstrap.getScript
+      Runtime: nodejs20.x
+      Architectures:
+        - arm64
+      Layers:
+        - !Ref CommonDependenciesLayer
+      Events:
+        ArtifactIndex:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /{folder}/bootstrap
+            Method: get
+  
+  CommonDependenciesLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: common-dependencies
+      Description: "Common dependencies for Lambda functions"
+      ContentUri: layers
+      CompatibleRuntimes:
+        - nodejs20.x
+      LicenseInfo: "MIT"
+  
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: s3-artifacts-enit # Specify your desired bucket name here
+
+  AlleimaUser:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: s3ArtfactAlleima
+
+  S3ArtfactUploader:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: s3ArtfactUploader
+
+  MetaTableYamlPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: S3AccessPolicyMetaTableYaml
+      Users:
+        - !Ref AlleimaUser
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Effect: Allow
+          Action:
+            - s3:GetObject
+          Resource:
+            - arn:aws:s3:::s3-artifacts-enit/meta-table-yaml/*
+        - Effect: Allow
+          Action:
+            - s3:ListBucket
+          Resource:
+            - arn:aws:s3:::s3-artifacts-enit
+          Condition:
+            StringLike:
+              s3:prefix:
+                - meta-table-yaml/*
+  UploaderPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: UploaderAccessPolicy
+      Users:
+        - !Ref S3ArtfactUploader
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - s3:PutObject
+            Resource:
+              - arn:aws:s3:::s3-artifacts-enit/*
+          - Effect: Allow
+            Action:
+              - s3:GetObject
+            Resource:
+              - arn:aws:s3:::s3-artifacts-enit/*
+          - Effect: Allow
+            Action:
+              - s3:ListBucket
+            Resource:
+              - arn:aws:s3:::s3-artifacts-enit
+Outputs:
+  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
+  # Find out more about other implicit resources you can reference within SAM
+  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
+  ArtifactApi:
+    Description: "API Gateway endpoint URL for Prod stage for rtifact index function"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/{folder}/"
+  ArtifactIndexFunction:
+    Description: "Hello World Lambda Function ARN"
+    Value: !GetAtt ArtifactIndexFunction.Arn
+  ArtifactIndexFunctionIamRole:
+    Description: "Implicit IAM Role created for Hello World function"
+    Value: !GetAtt ArtifactIndexFunctionRole.Arn
