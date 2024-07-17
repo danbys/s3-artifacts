@@ -1,5 +1,5 @@
 {
-  "name": "s3-artifacts",
+  "name": "@danbys/s3-artifacts",
   "version": "0.0.1",
   "description": "This project contains source code and supporting files for a serverless application that you can deploy with the SAM CLI. It includes the following files and folders.",
   "main": "src/index.js",
