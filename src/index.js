@@ -3,7 +3,7 @@ import request from 'request-promise';
 import path from 'path';
 import {info, error} from "@danbys/log-config";
 import { promises as fs } from 'fs';
-
+import pkg from '../../../../package.json' assert { type: 'json' };
 export const index = async () => {
     try {
         const files = await request({
@@ -30,7 +30,7 @@ export const download = async (filename) => {
     }
 }
 
-export const checkForNewerVersions = async (entrypoint) => {
+export const checkForNewerVersions = async () => {
 
     const isVersionNewer = (version, base) => {
         const versionParts = version.split('.').map(Number);
@@ -69,7 +69,7 @@ export const checkForNewerVersions = async (entrypoint) => {
     let newerFiles
     // If new versions are available, download them from S3
     if(parentDirName=='versions') {
-        const baseVersion = getVersion(entrypoint);
+        const baseVersion = pkg.version;
         const newerVersions = versions
             .filter(version => isVersionNewer(version, baseVersion));
         newerFiles = files.filter(file => newerVersions.includes(getVersion(file)));
