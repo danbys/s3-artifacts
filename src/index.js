@@ -5,6 +5,44 @@ import mime from 'mime';
 import {info, error} from "@danbys/log-config";
 import { promises as fs } from 'fs';
 import pkg from '../../../../package.json' assert { type: 'json' };
+
+// Generic function to handle HTTPS requests
+const httpsRequest = (method, url, headers = {}, body = null) => {
+    return new Promise((resolve, reject) => {
+        const { hostname, pathname } = new URL(url);
+        const options = {
+            hostname,
+            path: pathname,
+            method,
+            headers,
+        };
+
+        const req = https.request(options, (res) => {
+            let data = '';
+            res.on('data', (chunk) => data += chunk);
+            res.on('end', () => resolve(data));
+        });
+
+        req.on('error', (err) => reject(err));
+
+        if (body) {
+            req.write(body);
+        }
+
+        req.end();
+    });
+};
+
+// Function to list files
+export const index = async () => {
+    try {
+        const data = await httpsRequest('GET', config.base_url, config.credentials);
+        return JSON.parse(data);
+    } catch (err) {
+        throw new Error(`Unable to list files: ${err.message}`);
+    }
+};
+
 export const index = async () => {
     try {
         const data = await httpsRequest('GET', config.base_url, config.credentials);
