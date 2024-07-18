@@ -33,21 +33,10 @@ const httpsRequest = (method, url, headers = {}, body = null) => {
     });
 };
 
-// Function to list files
 export const index = async () => {
     try {
         const data = await httpsRequest('GET', config.base_url, config.credentials);
         return JSON.parse(data);
-    } catch (err) {
-        throw new Error(`Unable to list files: ${err.message}`);
-    }
-};
-
-export const index = async () => {
-    try {
-        const data = await httpsRequest('GET', config.base_url, config.credentials);
-        const files = JSON.parse(data)
-        return files;
     } catch (err) {
         throw(`Unable to list files ${err.error}`);
     }
