@@ -1,6 +1,6 @@
 {
   "name": "@danbys/s3-artifacts",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "This project contains source code and supporting files for a serverless application that you can deploy with the SAM CLI. It includes the following files and folders.",
   "main": "src/index.js",
   "type": "module",
@@ -13,7 +13,7 @@
     "@danbys/log-config": "^1.0.1",
     "dotenv": "^16.4.5",
     "js-yaml": "^4.1.0",
-    "request-promise": "^4.2.6",
-    "string-template": "^1.0.0"
+    "string-template": "^1.0.0",
+    "mime": "^4.0.4"
   }
 }

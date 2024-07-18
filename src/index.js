@@ -1,17 +1,15 @@
 import config from './config.js';
-import request from 'request-promise';
-import path from 'path';
+import https from 'https';
+import { URL } from 'url';
+import mime from 'mime';
 import {info, error} from "@danbys/log-config";
 import { promises as fs } from 'fs';
 import pkg from '../../../../package.json' assert { type: 'json' };
 export const index = async () => {
     try {
-        const files = await request({
-            'method': 'GET',
-            'url': config.base_url,
-            'headers': config.credentials
-        });
-        return JSON.parse(files);
+        const data = await httpsRequest('GET', config.base_url, config.credentials);
+        const files = JSON.parse(data)
+        return files;
     } catch (err) {
         throw(`Unable to list files ${err.error}`);
     }
@@ -19,14 +17,11 @@ export const index = async () => {
 
 export const download = async (filename) => {
     try {
-        const response = await request({
-            'method': 'GET',
-            'url': config.base_url + '/' + encodeURIComponent(filename),
-            'headers': config.credentials
-        });
-        return Buffer.from(response, 'base64');
+        const url = `${config.base_url}/${encodeURIComponent(filename)}`;
+        const data = await httpsRequest('GET', url, config.credentials);
+        return Buffer.from(data, 'base64');
     } catch (err) {
-        throw(`Unable to download ${filename} ${err.error}`);
+        throw new Error(`Unable to download ${filename}: ${err.message}`);
     }
 }
 
@@ -61,6 +56,7 @@ export const checkForNewerVersions = async () => {
         .map(file => getVersion(file));
 
     let newerFiles
+
     // If new versions are available, download them from S3
     const baseVersion = pkg.version;
     const newerVersions = versions
@@ -92,14 +88,11 @@ export const checkForNewerVersions = async () => {
 
 export const upload = async (bufferData, filename) => {
     try {
-        await request({
-            'method': 'PUT',
-            'url': config.base_url + '/' + encodeURIComponent(filename),
-            'headers': config.credentials,
-            body: bufferData.toString('base64')
-        });
+        const url = `${config.base_url}/${encodeURIComponent(filename)}`;
+        const headers = { ...config.credentials, 'Content-Type': mime.getType(filename) || 'application/octet-stream' };
+        await httpsRequest('PUT', url, headers, bufferData.toString('base64'));
     } catch (err) {
-        throw(`Unable to upload ${filename} ${err.error}`);
+        throw new Error(`Unable to upload ${filename}: ${err.message}`);
     }
 }
 
