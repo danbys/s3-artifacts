@@ -16,7 +16,7 @@ export const getScript = async (event, context) => {
     const {folder} = event.pathParameters;
     if (event.headers['User-Agent'].toLowerCase().includes('powershell')) {
       // Replace the BASE_URL line
-      template = template.replace(/^const BASE_URL = '.*';/m, `const BASE_URL = 'https://${event.requestContext.domainName}/${event.requestContext.stage}/${folder}/files';`);
+      template = template.replace(/^\$BASE_URL = "";/m, `$BASE_URL = "https://${event.requestContext.domainName}/${event.requestContext.stage}/${folder}/files";`);
 
     }
 

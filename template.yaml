@@ -127,6 +127,30 @@ Resources:
             StringLike:
               s3:prefix:
                 - meta-table-yaml/*
+
+  TblAsYmlPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: S3AccessPolicyTblAsYml
+      Users:
+        - !Ref AlleimaUser
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - s3:GetObject
+            Resource:
+              - arn:aws:s3:::s3-artifacts-enit/tbl-as-yml/*
+          - Effect: Allow
+            Action:
+              - s3:ListBucket
+            Resource:
+              - arn:aws:s3:::s3-artifacts-enit
+            Condition:
+              StringLike:
+                s3:prefix:
+                  - tbl-as-yml/*
   UploaderPolicy:
     Type: AWS::IAM::Policy
     Properties:

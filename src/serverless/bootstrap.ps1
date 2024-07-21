@@ -1,5 +1,5 @@
 # Initialize variables
-$BASE_URL = "https://4grx6iz46j.execute-api.eu-north-1.amazonaws.com/Prod/meta-table-yaml/files"
+$BASE_URL = "";
 
 # Prompt for user input
 $accessKeyId = Read-Host "Enter accessKeyId"
@@ -46,6 +46,7 @@ try {
     if (-Not (Test-Path -Path ".env")) {
         # Write to .env file
         $envContent = @"
+BASE_URL=$BASE_URL
 ACCESS_KEY_ID=$accessKeyId
 SECRET_ACCESS_KEY=$secretAccessKey
 "@

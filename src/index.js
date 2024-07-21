@@ -2,9 +2,10 @@ import config from './config.js';
 import https from 'https';
 import { URL } from 'url';
 import mime from 'mime';
-import {info, error} from "@danbys/log-config";
 import { promises as fs } from 'fs';
-import pkg from '../../../../package.json' assert { type: 'json' };
+
+const PKG_NAME = process.env.PKG_NAME;
+const PKG_VERSION = process.env.PKG_VERSION;
 
 // Generic function to handle HTTPS requests
 const httpsRequest = (method, url, headers = {}, body = null) => {
@@ -38,7 +39,7 @@ export const index = async () => {
         const data = await httpsRequest('GET', config.base_url, config.credentials);
         return JSON.parse(data);
     } catch (err) {
-        throw(`Unable to list files ${err.error}`);
+        throw new Error(`Unable to list files ${err.error}`);
     }
 }
 
@@ -52,7 +53,7 @@ export const download = async (filename) => {
     }
 }
 
-export const checkForNewerVersions = async () => {
+export const newerPackages = async () => {
 
     const isVersionNewer = (version, base) => {
         const versionParts = version.split('.').map(Number);
@@ -77,40 +78,41 @@ export const checkForNewerVersions = async () => {
             return version // Outputs: 0.0.1
         }
     }
+
+    const checkFileNotOnDisk = async (file) => {
+        try {
+            await fs.access(file);
+            return false; // File exists
+        } catch (err) {
+            return true; // File does not exist
+        }
+    };
+
     const files = await index();
     const versions = files
-        .filter(file => file.startsWith('versions/') && getVersion(file))
+        .filter(file => getVersion(file))
         .map(file => getVersion(file));
 
-    let newerFiles
+
 
     // If new versions are available, download them from S3
-    const baseVersion = pkg.version;
-    const newerVersions = versions
-        .filter(version => isVersionNewer(version, baseVersion));
-    newerFiles = files.filter(file => newerVersions.includes(getVersion(file)));
-    for (const file of newerFiles) {
-        try {
-            // Check if the file exists
-            await fs.access(filePath);
-        } catch (err1) {
-            // If the file does not exist, error is thrown, then upload the file
-            const bufferData = await download(file);
-            try {
-                await fs.writeFile(file, bufferData);
-                info(`Downloaded ${file} successfully`);
-            } catch (err2) {
-                newerFiles = newerFiles.filter(f => f !== file);
-                error(`Failed writing ${file}: ${err2}`);
-            }
-        }
+    if(!!PKG_VERSION){
+        const newerVersions = versions
+            .filter(version => isVersionNewer(version, PKG_VERSION));
+
+        const filterFilesAsync = async (files, newerVersions) => {
+            const fileChecks = await Promise.all(files.map(async file => {
+                const versionCheck = newerVersions.includes(getVersion(file));
+                const notOnDiskCheck = await checkFileNotOnDisk(file);
+                return versionCheck && notOnDiskCheck;
+            }));
+
+            return files.filter((_, index) => fileChecks[index]);
+        };
+
+        return await filterFilesAsync(files, newerVersions);
     }
 
-    // Log if there are newer versions on disk and give instructions how to update winsw service with the latest version
-    if (newerFiles.length > 0) {
-        info(`There are newer versions available: ${newerFiles.join(', ')}`);
-        info(`To run a newer version, edit ${pkg.name}.xml and update the version number in the <executable> tag and restart the service.`);
-    }
 }
 
 export const upload = async (bufferData, filename) => {
@@ -123,6 +125,6 @@ export const upload = async (bufferData, filename) => {
     }
 }
 
-export default {index, download, upload, checkForNewerVersions};
+export default {index, download, upload, newerPackages};
 
 
