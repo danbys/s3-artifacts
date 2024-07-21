@@ -93,25 +93,22 @@ export const newerPackages = async () => {
         .filter(file => getVersion(file))
         .map(file => getVersion(file));
 
-
-
     // If new versions are available, download them from S3
     if(!!PKG_VERSION){
         const newerVersions = versions
             .filter(version => isVersionNewer(version, PKG_VERSION));
+            const filterFilesAsync = async (files, newerVersions) => {
+                const fileChecks = await Promise.all(files.map(async file => {
+                    const versionCheck = newerVersions.includes(getVersion(file));
+                    const notOnDiskCheck = await checkFileNotOnDisk(file);
+                    return versionCheck && notOnDiskCheck;
+                }));
 
-        const filterFilesAsync = async (files, newerVersions) => {
-            const fileChecks = await Promise.all(files.map(async file => {
-                const versionCheck = newerVersions.includes(getVersion(file));
-                const notOnDiskCheck = await checkFileNotOnDisk(file);
-                return versionCheck && notOnDiskCheck;
-            }));
+                return files.filter((_, index) => fileChecks[index]);
+            };
 
-            return files.filter((_, index) => fileChecks[index]);
-        };
-
-        return await filterFilesAsync(files, newerVersions);
-    }
+            return await filterFilesAsync(files, newerVersions);
+        }
 
 }
 
