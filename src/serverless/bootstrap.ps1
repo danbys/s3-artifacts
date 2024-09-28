@@ -1,10 +1,30 @@
 # Initialize variables
 $BASE_URL = "";
 
-# Prompt for user input
-$accessKeyId = Read-Host "Enter accessKeyId"
-# $secretAccessKey = Read-Host "Enter secretAccessKey" -AsSecureString
-$secretAccessKey = Read-Host "Enter secretAccessKey"
+# Check if the environment variable for accessKeyId is set
+if (-Not [string]::IsNullOrWhiteSpace($env:ACCESS_KEY_ID)) {
+    $accessKeyId = $env:ACCESS_KEY_ID
+} else {
+    # Prompt for user input if the environment variable is not set
+    $accessKeyId = Read-Host "Enter accessKeyId"
+}
+# Check if the environment variable for secretAccessKey is set
+if (-Not [string]::IsNullOrWhiteSpace($env:SECRET_ACCESS_KEY)) {
+    $secretAccessKey = $env:SECRET_ACCESS_KEY
+} else {
+    # Prompt for user input if the environment variable is not set
+    $secretAccessKey = Read-Host "Enter secretAccessKey"
+}
+# Check if the environment variable for install_dir is set
+if (-Not [string]::IsNullOrWhiteSpace($env:INSTALL_DIR)) {
+    $install_dir = $env:INSTALL_DIR
+} else {
+    # Prompt for user input if the environment variable is not set
+    $install_dir = Read-Host "Enter installation directory path"
+}
+New-Item -Path $install_dir -ItemType Directory -Force  > $null
+Set-Location -Path $install_dir
+
 
 # Function to fetch data from HTTPS endpoint
 function Fetch-WithHttps {
@@ -47,8 +67,8 @@ try {
         # Write to .env file
         $envContent = @"
 BASE_URL=$BASE_URL
-ACCESS_KEY_ID=$accessKeyId
-SECRET_ACCESS_KEY=$secretAccessKey
+AWS_ACCESS_KEY_ID=$accessKeyId
+AWS_SECRET_ACCESS_KEY=$secretAccessKey
 "@
 
         $envContent | Out-File -FilePath ".env" -Encoding UTF8
